@@ -1,0 +1,98 @@
+[
+ {
+  "file": "dev/d0_s00.wav",
+  "voice": "Kyoko",
+  "text": "打ち合わせの場所は、渋谷のオフィスに変更になりました。",
+  "sha256": "f798c41cfd6cbca5"
+ },
+ {
+  "file": "dev/d0_s01.wav",
+  "voice": "Kyoko",
+  "text": "この案で進めて問題ないか、部長に確認してみます。",
+  "sha256": "eefc9ce8c25eda90"
+ },
+ {
+  "file": "dev/d0_s02.wav",
+  "voice": "Kyoko",
+  "text": "納品データは、明後日の正午までにアップロードします。",
+  "sha256": "edc3768bd95ff27b"
+ },
+ {
+  "file": "dev/d0_s03.wav",
+  "voice": "Kyoko",
+  "text": "お疲れさまです。本日の進捗を共有します。",
+  "sha256": "6a15b2268f2c2b8f"
+ },
+ {
+  "file": "dev/d0_s04.wav",
+  "voice": "Kyoko",
+  "text": "インスタグラム用の画像を三枚追加でお願いできますか？",
+  "sha256": "9aa2ae80d0d9f29e"
+ },
+ {
+  "file": "dev/d0_s05.wav",
+  "voice": "Kyoko",
+  "text": "わかりました、すぐ対応します。",
+  "sha256": "50c67d077f4786b3"
+ },
+ {
+  "file": "dev/d0_s06.wav",
+  "voice": "Kyoko",
+  "text": "キャンペーンの開始日は、十一月一日を予定しています。",
+  "sha256": "68da3e5d5ee3e42d"
+ },
+ {
+  "file": "dev/d0_s07.wav",
+  "voice": "Kyoko",
+  "text": "カメラマンと照明の手配は、制作会社にお願いしています。",
+  "sha256": "8f5e4d0e371c1dc2"
+ },
+ {
+  "file": "dev/d1_s00.wav",
+  "voice": "Reed (日本語（日本）)",
+  "text": "打ち合わせの場所は、渋谷のオフィスに変更になりました。",
+  "sha256": "ffdfefdfacb3b1b2"
+ },
+ {
+  "file": "dev/d1_s01.wav",
+  "voice": "Reed (日本語（日本）)",
+  "text": "この案で進めて問題ないか、部長に確認してみます。",
+  "sha256": "7879a0c4ac994e0b"
+ },
+ {
+  "file": "dev/d1_s02.wav",
+  "voice": "Reed (日本語（日本）)",
+  "text": "納品データは、明後日の正午までにアップロードします。",
+  "sha256": "6c434017905862ce"
+ },
+ {
+  "file": "dev/d1_s03.wav",
+  "voice": "Reed (日本語（日本）)",
+  "text": "お疲れさまです。本日の進捗を共有します。",
+  "sha256": "451f141629d015d7"
+ },
+ {
+  "file": "dev/d1_s04.wav",
+  "voice": "Reed (日本語（日本）)",
+  "text": "インスタグラム用の画像を三枚追加でお願いできますか？",
+  "sha256": "78fb83a7c877e256"
+ },
+ {
+  "file": "dev/d1_s05.wav",
+  "voice": "Reed (日本語（日本）)",
+  "text": "わかりました、すぐ対応します。",
+  "sha256": "bdb78ce4fcb7d9d1"
+ },
+ {
+  "file": "dev/d1_s06.wav",
+  "voice": "Reed (日本語（日本）)",
+  "text": "キャンペーンの開始日は、十一月一日を予定しています。",
+  "sha256": "be1d7723f7ef418c"
+ },
+ {
+  "file": "dev/d1_s07.wav",
+  "voice": "Reed (日本語（日本）)",
+  "text": "カメラマンと照明の手配は、制作会社にお願いしています。",
+  "sha256": "008ed8d0f954e826"
+ }
+]

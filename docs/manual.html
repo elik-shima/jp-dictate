@@ -1,0 +1,371 @@
+<title>JP Dictate マニュアル</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  :root {
+    --bg: #f3f6f5;
+    --surface: #ffffff;
+    --ink: #15201e;
+    --muted: #55655f;
+    --line: #d5dfdb;
+    --accent: #0e8a70;
+    --accent-soft: #e0f3ee;
+    --key: #fbfcfc;
+    --key-edge: #b9c6c1;
+    --warn: #a85b12;
+    --warn-soft: #fbefe2;
+    --screen: #10171a;
+    --trace: #48f0c8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0c1112; --surface: #141b1d; --ink: #e5eeeb; --muted: #97a8a2; --line: #26322f;
+      --accent: #48f0c8; --accent-soft: #123029; --key: #1c2528; --key-edge: #3a4a46;
+      --warn: #f0a55a; --warn-soft: #33240f; --screen: #070b0c; --trace: #48f0c8;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0c1112; --surface: #141b1d; --ink: #e5eeeb; --muted: #97a8a2; --line: #26322f;
+    --accent: #48f0c8; --accent-soft: #123029; --key: #1c2528; --key-edge: #3a4a46;
+    --warn: #f0a55a; --warn-soft: #33240f; --screen: #070b0c; --trace: #48f0c8;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", system-ui, sans-serif;
+    font-size: 15.5px;
+    line-height: 1.85;
+    padding-inline: 20px;
+    padding-block: 0 72px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1, h2, h3 { text-wrap: balance; line-height: 1.35; font-weight: 700; }
+  h2 { font-size: 1.35rem; margin: 0 0 14px; }
+  h3 { font-size: 1.02rem; margin: 22px 0 6px; }
+  p { margin: 0 0 12px; }
+  a { color: var(--accent); }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.9em; }
+
+  /* ヘッダー: アイコンと同じ「減衰振動 → カーソル」の画面 */
+  header { padding-block: 40px 28px; display: grid; grid-template-columns: auto 1fr; gap: 22px; align-items: center; }
+  .appicon { width: 96px; height: 96px; border-radius: 24px; background: var(--screen); display: grid; place-items: center;
+             box-shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 8px 24px rgba(0,0,0,.18); }
+  .appicon svg { width: 76px; height: 76px; }
+  header h1 { font-size: 2rem; margin: 0; letter-spacing: .01em; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  .formula { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .78rem; color: var(--muted); letter-spacing: .02em; }
+
+  nav.toc { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 12px 0 26px; border-bottom: 1px solid var(--line); font-size: .9rem; }
+  nav.toc a { color: var(--muted); text-decoration: none; }
+  nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent); text-decoration: underline; }
+
+  section { padding-block: 34px 6px; border-bottom: 1px solid var(--line); }
+  section:last-of-type { border-bottom: 0; }
+
+  .kbd { display: inline-block; min-width: 1.9em; padding: 0 .45em; border: 1px solid var(--key-edge); border-bottom-width: 3px;
+         border-radius: 6px; background: var(--key); font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .85em;
+         line-height: 1.7; text-align: center; vertical-align: .08em; }
+
+  /* 使い方の 3 ステップ (実際の順序) */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 18px 0 14px; padding: 0; list-style: none; counter-reset: s; }
+  .steps li { counter-increment: s; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 14px 12px; }
+  .steps li::before { content: counter(s); display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+                      background: var(--accent-soft); color: var(--accent); font-size: .8rem; font-weight: 700; margin-bottom: 6px; }
+  .steps b { display: block; font-size: 1rem; }
+  .steps .desc { color: var(--muted); font-size: .9rem; line-height: 1.6; display: block; }
+  @media (max-width: 560px) { .steps { grid-template-columns: 1fr; } }
+
+  ol.proc { padding-left: 1.3em; margin: 0 0 12px; }
+  ol.proc > li { margin-bottom: 10px; padding-left: .2em; }
+  ol.proc > li::marker { color: var(--accent); font-weight: 700; }
+
+  .table-wrap { overflow-x: auto; margin: 10px 0 16px; }
+  table { border-collapse: collapse; width: 100%; min-width: 460px; font-size: .93rem; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: .82rem; letter-spacing: .04em; }
+  td.icon { width: 64px; }
+  .menubar { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 24px; border-radius: 5px;
+             background: var(--surface); border: 1px solid var(--line); color: var(--ink); }
+  .menubar svg { width: 18px; height: 18px; }
+  .menubar.rec { color: #e5483b; }
+
+  .note { background: var(--accent-soft); border-radius: 10px; padding: 12px 16px; margin: 12px 0 16px; font-size: .94rem; }
+  .note.warn { background: var(--warn-soft); }
+  .note.warn strong { color: var(--warn); }
+
+  .cmd { display: flex; gap: 8px; align-items: stretch; margin: 8px 0 14px; }
+  .cmd pre { flex: 1; margin: 0; overflow-x: auto; background: var(--screen); color: #d9f7ee; border-radius: 8px; padding: 10px 12px;
+             font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .82rem; line-height: 1.6; }
+  .cmd button { flex: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px;
+                padding: 0 12px; font: inherit; font-size: .85rem; cursor: pointer; }
+  .cmd button:hover { border-color: var(--accent); }
+  .cmd button:focus-visible, nav.toc a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  details { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); margin: 10px 0; }
+  summary { cursor: pointer; padding: 12px 16px; font-weight: 500; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "＋"; color: var(--muted); flex: none; }
+  details[open] summary::after { content: "−"; }
+  details > div { padding: 0 16px 12px; }
+
+  ul.plain { padding-left: 1.2em; margin: 0 0 12px; }
+  ul.plain li { margin-bottom: 6px; }
+  footer { color: var(--muted); font-size: .85rem; padding-top: 28px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="appicon" aria-hidden="true">
+      <svg viewBox="0 0 100 100">
+        <path id="trace" fill="none" stroke="var(--trace)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"></path>
+        <rect x="76" y="31" width="5" height="38" rx="2.5" fill="var(--trace)"></rect>
+      </svg>
+    </div>
+    <div>
+      <h1>JP Dictate</h1>
+      <p>fn を押している間だけ話すと、離したときにカーソルの位置へ日本語が入力されます。認識はすべて Mac の中で行います。</p>
+      <p class="formula">x(t) = e<sup>−t/τ</sup> sin 2πft → │</p>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="目次">
+    <a href="#install">インストール</a>
+    <a href="#setup">はじめての設定</a>
+    <a href="#use">使い方</a>
+    <a href="#menubar">メニューバー</a>
+    <a href="#behavior">入力のしくみ</a>
+    <a href="#privacy">プライバシー</a>
+    <a href="#trouble">困ったとき</a>
+    <a href="#uninstall">アンインストール</a>
+  </nav>
+
+  <section id="install">
+    <h2>インストール</h2>
+    <p><strong>必要なもの:</strong> macOS 26 以降、Apple シリコン (M1 以降) の Mac。</p>
+    <ol class="proc">
+      <li>受け取った <code>JP Dictate.app</code> を「アプリケーション」フォルダに入れます。zip で受け取った場合は、ダブルクリックで展開してから移動してください。</li>
+      <li><code>JP Dictate.app</code> をダブルクリックします。「開発元を確認できないため開けません」と表示されたら「完了」を押して閉じ、
+        <strong>システム設定 → プライバシーとセキュリティ</strong> の下のほうにある「“JP Dictate”はブロックされました」の横の <strong>「このまま開く」</strong> を押します。</li>
+      <li>メニューバーの右上に波形のアイコンが出れば起動しています。Dock には表示されません。</li>
+    </ol>
+    <div class="note">このアプリは Apple の公証を受けていないため、最初の 1 回だけ上の操作が必要です。2 回目からは普通に開けます。</div>
+  </section>
+
+  <section id="setup">
+    <h2>はじめての設定</h2>
+    <p>起動すると、許可を求める画面が順に出ます。<strong>システム設定 → プライバシーとセキュリティ</strong> で、次の 3 つすべてに「JP Dictate」を許可してください。</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>項目</th><th>何に使うか</th></tr></thead>
+        <tbody>
+          <tr><td>入力監視</td><td><span class="kbd">fn</span> キーを押したこと・離したことを知るため。文字の入力内容は記録しません</td></tr>
+          <tr><td>アクセシビリティ</td><td>認識した文章をカーソルの位置に貼り付けるため (<span class="kbd">⌘</span><span class="kbd">V</span> を送ります)</td></tr>
+          <tr><td>マイク</td><td><span class="kbd">fn</span> を押している間の声を録るため</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>許可したら、JP Dictate の画面の <strong>「再起動」</strong> を押します (またはメニューバーのアイコン →「再起動」)。</p>
+
+    <h3>録音キーを選ぶ</h3>
+    <p>最初は <span class="kbd">fn</span> で録音します。<strong>Apple 製以外のキーボード</strong> (Logicool・Keychron など) では、
+      <span class="kbd">fn</span> がキーボードの中で処理されて Mac に届かず、反応しないことがよくあります。その場合は、
+      メニューバーのアイコン →「<strong>録音キー</strong>」で、右側の修飾キーに切り替えてください。</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>録音キー</th><th>向いているキーボード</th></tr></thead>
+        <tbody>
+          <tr><td><span class="kbd">fn</span> (🌐)</td><td>Mac 本体・Apple 製のキーボード</td></tr>
+          <tr><td>右 <span class="kbd">⌥</span> option</td><td>Apple 製以外のキーボードも含め、ほとんどのキーボード (おすすめ)</td></tr>
+          <tr><td>右 <span class="kbd">⌘</span> command</td><td>同上</td></tr>
+          <tr><td>右 <span class="kbd">⌃</span> control</td><td>同上 (右側に control があるキーボードのみ)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>右側のキーを選ぶと、左側の同じキーは今までどおり使えます。選んだキーは次回の起動でも使われます。
+      以下の説明の <span class="kbd">fn</span> は、選んだ録音キーに読み替えてください。</p>
+
+    <h3>🌐キーの設定 (fn を使う場合)</h3>
+    <p><strong>システム設定 → キーボード</strong> の「🌐キーを押して」を <strong>「何もしない」</strong> にしてください。
+      ほかの動作 (絵文字と記号の表示・入力ソースの変更・音声入力の開始) になっていると、<span class="kbd">fn</span> を押すたびにそれも一緒に動いてしまいます。</p>
+
+    <h3>認識エンジンを選ぶ</h3>
+    <p>メニューバーのアイコン →「<strong>認識エンジン</strong>」で、2 種類から選べます。選んだエンジンは次回の起動でも使われます。</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>エンジン</th><th>特徴</th></tr></thead>
+        <tbody>
+          <tr><td>Apple 内蔵 (最初はこちら)</td><td>軽く、反応が速い (約 0.1 秒)。句読点がよく付きます</td></tr>
+          <tr><td>kotoba-whisper</td><td>言葉の聞き取りの誤りがおよそ 2〜5 分の 1。長く話すときに向いています。句読点は少なめで、反応は約 0.3〜0.6 秒。使っている間は約 1.7GB のメモリを使います</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>kotoba-whisper を初めて選ぶと、モデル (約 1.5GB) をダウンロードしてよいか確認が出ます。ダウンロードの進み具合はメニューに表示されます。
+      モデルは <code>~/Library/Application Support/JPDictate/models</code> に保存されます。</p>
+
+    <h3>ログイン時に自動で起動する</h3>
+    <p>メニューバーのアイコン →「ログイン時に起動」にチェックを入れます。</p>
+  </section>
+
+  <section id="use">
+    <h2>使い方</h2>
+    <ol class="steps">
+      <li><b><span class="kbd">fn</span> を押したまま</b><span class="desc">「ティン」と鳴ったら録音が始まります。</span></li>
+      <li><b>話す</b><span class="desc">句読点は自動で付きます。何文か続けて話しても大丈夫です。</span></li>
+      <li><b>離す</b><span class="desc">「ポン」と鳴り、0.1〜0.6 秒ほどでカーソルの位置に入力されます。</span></li>
+    </ol>
+    <ul class="plain">
+      <li><strong>押してから一呼吸おいて話す</strong>と、最初の言葉が欠けません (押した瞬間にマイクを開くため、ごく短い間だけ録音が始まっていません)。</li>
+      <li><strong>取り消したいとき:</strong> <span class="kbd">fn</span> を押したまま、ほかのキーを押します。その回は何も入力されません。
+        <span class="kbd">fn</span>＋<span class="kbd">←</span> などのショートカットを使ったときも、自動で取り消しになります。</li>
+      <li>ごく短く押しただけのとき (0.2 秒未満) や、何も話さなかったときは何もしません。</li>
+      <li>1 回に話せるのは 120 秒までです。それを超えると自動で録音を止めて入力します。</li>
+    </ul>
+  </section>
+
+  <section id="menubar">
+    <h2>メニューバーの表示</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>表示</th><th>状態</th></tr></thead>
+        <tbody>
+          <tr><td class="icon"><span class="menubar"><svg viewBox="0 0 36 36"><use href="#glyph"></use></svg></span></td><td>待機中。<span class="kbd">fn</span> を押せば録音できます</td></tr>
+          <tr><td class="icon"><span class="menubar rec"><svg viewBox="0 0 36 36"><use href="#glyph"></use></svg></span></td><td>録音中 (赤)。このとき画面右上にオレンジのマイク表示も出ます</td></tr>
+          <tr><td class="icon"><span class="menubar" aria-label="認識中"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg></span></td><td>認識中</td></tr>
+          <tr><td class="icon"><span class="menubar" aria-label="準備中"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9s8 4 8 9"/></svg></span></td><td>起動直後の準備中</td></tr>
+          <tr><td class="icon"><span class="menubar" aria-label="エラー" style="color: var(--warn)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.5 20h19L12 3zM12 10v4M12 17.5v.01"/></svg></span></td><td>エラー。アイコンをクリックすると内容が表示されます (多くは許可の不足です)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>アイコンをクリックすると、最後に入力した文章と所要時間、「認識エンジン」「録音キー」「再起動」「ログを表示」「プライバシー設定を開く」「ログイン時に起動」「終了」が選べます。</p>
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <defs><g id="glyph"><path id="glyphpath" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path><rect x="29.5" y="5" width="4" height="26" rx="2" fill="currentColor"></rect></g></defs>
+    </svg>
+  </section>
+
+  <section id="behavior">
+    <h2>入力のしくみ</h2>
+    <p>文章はクリップボードを経由して貼り付けます。そのため、次のように動きます。</p>
+    <ul class="plain">
+      <li><strong>クリップボードは元に戻ります。</strong> 貼り付けの 1.5 秒後に、それまでコピーしていた内容 (画像なども含む) に戻します。その間に別のものをコピーした場合は、そちらを優先して戻しません。</li>
+      <li><strong>パスワード入力欄には入力しません。</strong> パスワードの欄にカーソルがあるときは、認識しても貼り付けません。</li>
+      <li><strong>話している間にアプリが切り替わったら、貼り付けません。</strong> 文章はクリップボードに入れておくので、目的の場所で <span class="kbd">⌘</span><span class="kbd">V</span> を押してください。</li>
+      <li><strong>パスワード管理アプリでコピーした内容は戻しません。</strong> 自動で消える設定を無効にしないためです。</li>
+    </ul>
+  </section>
+
+  <section id="privacy">
+    <h2>プライバシー</h2>
+    <ul class="plain">
+      <li>音声の認識は、どちらのエンジンもすべてこの Mac の中で行います。音声も文章も外部に送りません (インターネットを使うのは kotoba-whisper のモデルを最初にダウンロードするときだけです)。</li>
+      <li>マイクは <span class="kbd">fn</span> を押している間だけ開きます。録音はメモリの中だけで扱い、ファイルに保存しません。</li>
+      <li>ログ (<code>~/Library/Logs/JPDictate/dictate.log</code>) には、動作の記録と文字数だけを書き、認識した文章は書きません。</li>
+      <li>貼り付けに使う文章は、この Mac のクリップボードだけに置きます。ほかの Apple 製品と共有されるユニバーサルクリップボードには送りません。</li>
+    </ul>
+  </section>
+
+  <section id="trouble">
+    <h2>困ったとき</h2>
+
+    <details>
+      <summary>fn を押しても反応しない</summary>
+      <div>
+        <p>「入力監視」と「アクセシビリティ」が許可されているか確認してください。一覧でオンになっていても効いていない場合は、
+          その項目の「JP Dictate」を選んで「−」で削除し、JP Dictate を開き直して許可し直します。ターミナルで次を実行してから開き直しても同じです。</p>
+        <div class="cmd">
+          <pre id="cmd-reset">tccutil reset ListenEvent local.jp-dictate; tccutil reset Accessibility local.jp-dictate; tccutil reset PostEvent local.jp-dictate</pre>
+          <button type="button" data-copy="cmd-reset">コピー</button>
+        </div>
+        <p>Apple 製以外のキーボードでは、<span class="kbd">fn</span> キーがキーボード内部で処理されて Mac に届かないことがあります。
+          その場合は、メニューバーのアイコン →「録音キー」で <strong>右 ⌥</strong> などに切り替えてください。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>録音はされるが、文章が入力されない</summary>
+      <div>
+        <p>「アクセシビリティ」の許可を確認してください。パスワード入力欄や、話している間に別のアプリに切り替えた場合は、仕様として貼り付けません (メニューバーのアイコンをクリックすると理由が表示されます)。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>声を拾わない・「マイクの音声が届いていません」と出る</summary>
+      <div>
+        <p>「マイク」の許可を確認してください。<strong>システム設定 → サウンド → 入力</strong> で、使いたいマイクが選ばれているかも確認します。
+          AirPods などの Bluetooth のマイクは、使い始めるまでに少し時間がかかるため、押してから一呼吸おいて話してください。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>最初の言葉が欠ける</summary>
+      <div>
+        <p><span class="kbd">fn</span> を押してから一呼吸おいて話し始めてください。押した瞬間にマイクを開くため、ごく短い間は録音が始まっていません。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>fn を押すと絵文字パネルなどが一緒に開く</summary>
+      <div>
+        <p><strong>システム設定 → キーボード</strong> の「🌐キーを押して」を「何もしない」にしてください。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>macOS 標準の音声入力との違いは？</summary>
+      <div>
+        <p>どちらも macOS の音声認識を使いますが、標準の音声入力は話しながら少しずつ文字にする方式で、黙ると自動で止まります。
+          JP Dictate は押している間の発話をまとめて認識するため、言葉を取りこぼしにくく、句読点も付きやすくなります。</p>
+      </div>
+    </details>
+  </section>
+
+  <section id="uninstall">
+    <h2>アンインストール</h2>
+    <ol class="proc">
+      <li>メニューバーのアイコン →「ログイン時に起動」のチェックを外し、「JP Dictate を終了」を選びます。</li>
+      <li>「アプリケーション」フォルダの <code>JP Dictate.app</code> をゴミ箱に入れます。</li>
+      <li><strong>システム設定 → プライバシーとセキュリティ</strong> の「入力監視」「アクセシビリティ」「マイク」から「JP Dictate」を「−」で削除します。</li>
+      <li>記録も消す場合は、<code>~/Library/Logs/JPDictate</code> と <code>~/Library/Application Support/JPDictate</code> のフォルダを削除します。</li>
+    </ol>
+  </section>
+
+  <footer>JP Dictate — macOS 26 以降 / Apple シリコン</footer>
+</div>
+
+<script>
+  // アイコンと同じ曲線: 減衰振動 x(t) = e^{-t/τ} sin(2πft) をテキストカーソルの手前まで描く
+  function damped(x0, x1, cy, amp, tau, cycles, n) {
+    let d = "";
+    for (let i = 0; i <= n; i++) {
+      const t = i / n;
+      const x = x0 + (x1 - x0) * t;
+      const y = cy - amp * Math.exp(-t / tau) * Math.sin(2 * Math.PI * cycles * t);
+      d += (i ? " L" : "M") + x.toFixed(2) + "," + y.toFixed(2);
+    }
+    return d;
+  }
+  document.getElementById("trace").setAttribute("d", damped(14, 70, 50, 21, 0.30, 4.0, 400));
+  document.getElementById("glyphpath").setAttribute("d", damped(2.5, 25.5, 18, 12, 0.35, 2.5, 200));
+
+  document.querySelectorAll("[data-copy]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const el = document.getElementById(btn.dataset.copy);
+      const text = el.textContent;
+      const done = () => { btn.textContent = "コピーしました"; setTimeout(() => (btn.textContent = "コピー"), 1600); };
+      const select = () => {
+        const r = document.createRange(); r.selectNodeContents(el);
+        const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        btn.textContent = "選択しました";
+        setTimeout(() => (btn.textContent = "コピー"), 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, select);
+      } else {
+        select();
+      }
+    });
+  });
+</script>

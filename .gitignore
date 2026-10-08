@@ -1,0 +1,35 @@
+# 大きいもの・再生成できるもの
+models/
+.venv/
+__pycache__/
+*.log
+app/build/
+eval/wav/
+eval/dev/
+eval/results/
+eval/results_verify/
+
+# 候補フォルダはコードと設定だけ (venv・モデル・データは除外)
+eval/candidates/**
+!eval/candidates/**/
+!eval/candidates/**/*.py
+!eval/candidates/**/*.swift
+!eval/candidates/**/*.sh
+!eval/candidates/**/candidate.json
+!eval/candidates/**/*.md
+eval/candidates/**/.venv/
+eval/candidates/**/models/
+eval/candidates/**/site-packages/
+eval/candidates/**/.build/
+
+# ビルド成果物
+bin/
+
+eval/multi/
+app/icon/__pycache__/
+eval/.venv/
+
+# whisper.cpp (app/vendor/build-whisper.sh が取得・ビルド)
+app/vendor/whisper.cpp/
+app/vendor/build/
+app/vendor/.tools/
