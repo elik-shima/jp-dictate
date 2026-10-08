@@ -13,16 +13,9 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 APP="$WORK/JP Dictate.app"
 
-# kotoba-whisper 用の whisper.cpp (静的ライブラリ。初回は取得とビルドで数分かかる。作成済みなら何もしない)
-./vendor/build-whisper.sh
-V="$PWD/vendor/build"
-
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 swiftc -O -swift-version 5 -target arm64-apple-macosx26.0 Sources/*.swift -o "$APP/Contents/MacOS/JPDictate" \
-  -import-objc-header Sources/Whisper-Bridging.h -Xcc -I"$V/include" -L"$V/lib" \
-  -lwhisper -lggml -lggml-base -lggml-cpu -lggml-metal -lc++ \
-  -framework AppKit -framework ServiceManagement -framework Speech -framework AVFoundation -framework Carbon \
-  -framework Metal -framework MetalKit -framework Foundation -framework Accelerate
+  -framework AppKit -framework ServiceManagement -framework Speech -framework AVFoundation -framework Carbon -framework Security
 
 for f in MenubarTemplate.png MenubarTemplate@2x.png; do
   [ -f "$f" ] && cp "$f" "$APP/Contents/Resources/"

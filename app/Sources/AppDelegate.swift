@@ -10,9 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let noticeMenuItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let loginMenuItem = NSMenuItem(title: "ログイン時に起動", action: #selector(toggleLogin), keyEquivalent: "")
     private var keyMenuItems: [NSMenuItem] = []
-    private var engineMenuItems: [NSMenuItem] = []
-    private var switchingEngine = false
-    private var lastDownloadPct = -1
+    private let cleanKeyStatusItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let menu = NSMenu()
     private let dictation = Dictation()
     private lazy var menubarGlyph: NSImage? = {
@@ -105,18 +103,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         keyItem.submenu = keyMenu
         menu.addItem(keyItem)
         refreshKeyItems()
-        let engineMenu = NSMenu()
-        for k in EngineKind.allCases {
-            let item = NSMenuItem(title: k.label, action: #selector(chooseEngine(_:)), keyEquivalent: "")
+        let cleanMenu = NSMenu()
+        cleanKeyStatusItem.isEnabled = false
+        cleanMenu.addItem(cleanKeyStatusItem)
+        cleanMenu.addItem(.separator())
+        for (title, action) in [("API キーを設定…", #selector(setAPIKey)), ("API キーを削除", #selector(deleteAPIKey))] {
+            let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
             item.target = self
-            item.representedObject = k.rawValue
-            engineMenu.addItem(item)
-            engineMenuItems.append(item)
+            cleanMenu.addItem(item)
         }
-        let engineItem = NSMenuItem(title: "認識エンジン", action: nil, keyEquivalent: "")
-        engineItem.submenu = engineMenu
-        menu.addItem(engineItem)
-        refreshEngineItems()
+        let cleanItem = NSMenuItem(title: "清書モード (Shift + 録音キー)", action: nil, keyEquivalent: "")
+        cleanItem.submenu = cleanMenu
+        menu.addItem(cleanItem)
+        refreshCleanItem()
         menu.addItem(NSMenuItem(title: "再起動", action: #selector(relaunch), keyEquivalent: "r"))
         menu.addItem(NSMenuItem(title: "ログを表示", action: #selector(openLog), keyEquivalent: "l"))
         menu.addItem(NSMenuItem(title: "プライバシー設定を開く", action: #selector(openPrivacy), keyEquivalent: ""))
@@ -131,6 +130,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuWillOpen(_ menu: NSMenu) {
         refreshLoginItem()  // システム設定側で変更された場合も反映する
+        refreshCleanItem()
     }
 
     private func setState(_ state: String, _ msg: String) {
@@ -138,6 +138,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             switch state {
             case "ready":   return ("mic", "待機中 — \(TriggerKey.saved.shortLabel) を押している間だけ録音", nil)
             case "rec":     return ("mic.fill", "録音中…", .systemRed)
+            case "rec-clean": return ("mic.fill", "録音中… (清書モード)", .systemRed)
+            case "clean":   return ("sparkles", "清書中… (Claude)", nil)
             case "busy":    return ("waveform", "認識中…", nil)
             case "loading": return ("hourglass", "準備中…", nil)
             default:
@@ -148,10 +150,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
         }()
         guard let button = statusItem.button else { return }
-        if state == "ready" || state == "rec", let glyph = menubarGlyph {
+        if state == "ready" || state.hasPrefix("rec"), let glyph = menubarGlyph {
             // 待機中・録音中はアプリのアイコンと同じ形 (減衰振動 → カーソル)。録音中は赤く
             button.image = glyph
-            button.contentTintColor = state == "rec" ? .systemRed : nil
+            button.contentTintColor = state.hasPrefix("rec") ? .systemRed : nil
         } else {
             let img = NSImage(systemSymbolName: symbol, accessibilityDescription: title)
             button.contentTintColor = nil
@@ -198,62 +200,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         for item in keyMenuItems { item.state = (item.representedObject as? String) == current.rawValue ? .on : .off }
     }
 
-    private func refreshEngineItems() {
-        let current = EngineKind.saved
-        for item in engineMenuItems { item.state = (item.representedObject as? String) == current.rawValue ? .on : .off }
+    private func refreshCleanItem() {
+        cleanKeyStatusItem.title = APIKeyStore.hasKey ? "API キー: 設定済み" : "API キー: 未設定"
     }
 
-    @objc private func chooseEngine(_ sender: NSMenuItem) {
-        guard let raw = sender.representedObject as? String, let k = EngineKind(rawValue: raw) else { return }
-        guard dictation.started else { setNotice("起動が終わってから切り替えてください"); return }
-        guard !switchingEngine, k != dictation.engineKind else { return }
-        if k == .kotoba && !KotobaModel.isInstalled {
-            // モーダルはランループから出す (showAlert と同じ)
-            RunLoop.main.perform(inModes: [.default]) { [weak self] in
-                NSApp.activate(ignoringOtherApps: true)
-                let a = NSAlert()
-                a.messageText = "kotoba-whisper のモデルをダウンロードしますか？"
-                a.informativeText = "約 1.5GB をダウンロードします (初回だけ)。ダウンロードが終わると自動で切り替わります。"
-                a.addButton(withTitle: "ダウンロード")
-                a.addButton(withTitle: "キャンセル")
-                if a.runModal() == .alertFirstButtonReturn { self?.beginSwitch(to: k) }
-            }
+    @objc private func setAPIKey() {
+        NSApp.activate(ignoringOtherApps: true)
+        let a = NSAlert()
+        a.messageText = "清書モードの API キーを設定"
+        a.informativeText = """
+        Shift を押しながら録音キーで話すと、認識した文章を Anthropic の Claude API (Claude Haiku 5.5) に送り、句読点・言いよどみ・明らかな誤字を整えてから貼り付けます。
+        送るのは認識した文章だけで、音声は送りません。清書モードを使わないときは、これまでどおりすべてこの Mac の中で処理します。
+        API キーは、この Mac のキーチェーンに保存します。
+        """
+        let field = NSSecureTextField(frame: NSRect(x: 0, y: 0, width: 320, height: 24))
+        field.placeholderString = "sk-ant-…"
+        a.accessoryView = field
+        a.addButton(withTitle: "保存")
+        a.addButton(withTitle: "キャンセル")
+        a.window.initialFirstResponder = field
+        guard a.runModal() == .alertFirstButtonReturn else { return }
+        let key = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !key.isEmpty else { return }
+        if APIKeyStore.save(key) {
+            setNotice("清書モードの API キーを保存しました")
+            Log.write("清書モード: API キーを保存")
         } else {
-            beginSwitch(to: k)
+            showAlert("API キーを保存できません", "キーチェーンへの保存に失敗しました。")
         }
+        refreshCleanItem()
     }
 
-    /// (必要ならモデルをダウンロードして) エンジンを切り替える。失敗したら前のエンジンのまま、エラーを表示する。
-    private func beginSwitch(to k: EngineKind) {
-        guard !switchingEngine else { return }
-        switchingEngine = true
-        setState("loading", "")
-        Task { @MainActor in
-            do {
-                if k == .kotoba && !KotobaModel.isInstalled {
-                    lastDownloadPct = -1
-                    try await KotobaModel.download { done, total in
-                        let pct = total > 0 ? Int(done * 100 / total) : 0
-                        DispatchQueue.main.async {
-                            guard pct != self.lastDownloadPct else { return }
-                            self.lastDownloadPct = pct
-                            self.setNotice(total > 0 ? "kotoba-whisper をダウンロード中 \(pct)% (\(done / 1_000_000) / \(total / 1_000_000) MB)"
-                                                     : "kotoba-whisper をダウンロード中 \(done / 1_000_000) MB")
-                        }
-                    }
-                    setNotice("kotoba-whisper を読み込み中…")
-                }
-                try await dictation.switchEngine(to: k)
-                setNotice("認識エンジンを \(k.shortLabel) にしました")
-            } catch {
-                Log.write("認識エンジンを切り替えられません: \(error.localizedDescription)")
-                setNotice("⚠️ \(error.localizedDescription)")
-                showAlert("認識エンジンを切り替えられません", "\(error.localizedDescription)\n\(dictation.engineKind.shortLabel) のまま使います。")
-            }
-            switchingEngine = false
-            refreshEngineItems()
-            dictation.refreshState()
-        }
+    @objc private func deleteAPIKey() {
+        APIKeyStore.delete()
+        setNotice("清書モードの API キーを削除しました")
+        Log.write("清書モード: API キーを削除")
+        refreshCleanItem()
     }
 
     @objc private func openLog() {

@@ -192,19 +192,11 @@
     <p><strong>システム設定 → キーボード</strong> の「🌐キーを押して」を <strong>「何もしない」</strong> にしてください。
       ほかの動作 (絵文字と記号の表示・入力ソースの変更・音声入力の開始) になっていると、<span class="kbd">fn</span> を押すたびにそれも一緒に動いてしまいます。</p>
 
-    <h3>認識エンジンを選ぶ</h3>
-    <p>メニューバーのアイコン →「<strong>認識エンジン</strong>」で、2 種類から選べます。選んだエンジンは次回の起動でも使われます。</p>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>エンジン</th><th>特徴</th></tr></thead>
-        <tbody>
-          <tr><td>Apple 内蔵 (最初はこちら)</td><td>軽く、反応が速い (約 0.1 秒)。句読点がよく付きます</td></tr>
-          <tr><td>kotoba-whisper</td><td>言葉の聞き取りの誤りがおよそ 2〜5 分の 1。長く話すときに向いています。句読点は少なめで、反応は約 0.3〜0.6 秒。使っている間は約 1.7GB のメモリを使います</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p>kotoba-whisper を初めて選ぶと、モデル (約 1.5GB) をダウンロードしてよいか確認が出ます。ダウンロードの進み具合はメニューに表示されます。
-      モデルは <code>~/Library/Application Support/JPDictate/models</code> に保存されます。</p>
+    <h3>清書モードを使う (任意)</h3>
+    <p>録音キーを <span class="kbd">Shift</span> と一緒に押して話すと、認識した文章を Anthropic の Claude (Claude Haiku 5.5) で整えてから入力します。
+      整えるのは、句読点・「えーと」などの言いよどみと言い直し・前後の文脈から明らかな 1〜2 文字の誤字の 3 つだけで、語尾や言い回しは変えません。</p>
+    <p>使うには、メニューバーのアイコン →「<strong>清書モード</strong>」→「API キーを設定…」で、Anthropic の API キーを入れます。キーはこの Mac のキーチェーンに保存されます。
+      清書には 1〜2 秒ほどかかります。うまく整えられなかったとき (通信できない・時間切れなど) は、認識した文章をそのまま入力します。</p>
 
     <h3>ログイン時に自動で起動する</h3>
     <p>メニューバーのアイコン →「ログイン時に起動」にチェックを入れます。</p>
@@ -215,10 +207,11 @@
     <ol class="steps">
       <li><b><span class="kbd">fn</span> を押したまま</b><span class="desc">「ティン」と鳴ったら録音が始まります。</span></li>
       <li><b>話す</b><span class="desc">句読点は自動で付きます。何文か続けて話しても大丈夫です。</span></li>
-      <li><b>離す</b><span class="desc">「ポン」と鳴り、0.1〜0.6 秒ほどでカーソルの位置に入力されます。</span></li>
+      <li><b>離す</b><span class="desc">「ポン」と鳴り、0.1 秒ほどでカーソルの位置に入力されます (清書モードでは 1〜2 秒)。</span></li>
     </ol>
     <ul class="plain">
       <li><strong>押してから一呼吸おいて話す</strong>と、最初の言葉が欠けません (押した瞬間にマイクを開くため、ごく短い間だけ録音が始まっていません)。</li>
+      <li><strong>清書モード:</strong> <span class="kbd">Shift</span> を押しながら <span class="kbd">fn</span> を押して話すと、整えてから入力します (「はじめての設定」の清書モードを参照)。録音中に <span class="kbd">Shift</span> を離しても取り消しにはなりません。</li>
       <li><strong>取り消したいとき:</strong> <span class="kbd">fn</span> を押したまま、ほかのキーを押します。その回は何も入力されません。
         <span class="kbd">fn</span>＋<span class="kbd">←</span> などのショートカットを使ったときも、自動で取り消しになります。</li>
       <li>ごく短く押しただけのとき (0.2 秒未満) や、何も話さなかったときは何もしません。</li>
@@ -234,13 +227,13 @@
         <tbody>
           <tr><td class="icon"><span class="menubar"><svg viewBox="0 0 36 36"><use href="#glyph"></use></svg></span></td><td>待機中。<span class="kbd">fn</span> を押せば録音できます</td></tr>
           <tr><td class="icon"><span class="menubar rec"><svg viewBox="0 0 36 36"><use href="#glyph"></use></svg></span></td><td>録音中 (赤)。このとき画面右上にオレンジのマイク表示も出ます</td></tr>
-          <tr><td class="icon"><span class="menubar" aria-label="認識中"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg></span></td><td>認識中</td></tr>
+          <tr><td class="icon"><span class="menubar" aria-label="認識中"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg></span></td><td>認識中 (清書モードでは、続けて「清書中」と表示されます)</td></tr>
           <tr><td class="icon"><span class="menubar" aria-label="準備中"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9s8 4 8 9"/></svg></span></td><td>起動直後の準備中</td></tr>
           <tr><td class="icon"><span class="menubar" aria-label="エラー" style="color: var(--warn)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.5 20h19L12 3zM12 10v4M12 17.5v.01"/></svg></span></td><td>エラー。アイコンをクリックすると内容が表示されます (多くは許可の不足です)</td></tr>
         </tbody>
       </table>
     </div>
-    <p>アイコンをクリックすると、最後に入力した文章と所要時間、「認識エンジン」「録音キー」「再起動」「ログを表示」「プライバシー設定を開く」「ログイン時に起動」「終了」が選べます。</p>
+    <p>アイコンをクリックすると、最後に入力した文章と所要時間、「録音キー」「清書モード」「再起動」「ログを表示」「プライバシー設定を開く」「ログイン時に起動」「終了」が選べます。</p>
     <svg width="0" height="0" style="position:absolute" aria-hidden="true">
       <defs><g id="glyph"><path id="glyphpath" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path><rect x="29.5" y="5" width="4" height="26" rx="2" fill="currentColor"></rect></g></defs>
     </svg>
@@ -260,7 +253,8 @@
   <section id="privacy">
     <h2>プライバシー</h2>
     <ul class="plain">
-      <li>音声の認識は、どちらのエンジンもすべてこの Mac の中で行います。音声も文章も外部に送りません (インターネットを使うのは kotoba-whisper のモデルを最初にダウンロードするときだけです)。</li>
+      <li>音声の認識は、すべてこの Mac の中で行います。音声は外部に送りません。</li>
+      <li>文章も外部に送りません。例外は清書モード (<span class="kbd">Shift</span> と一緒に押したとき) で、そのときだけ認識した文章を Anthropic の Claude API に送ります。</li>
       <li>マイクは <span class="kbd">fn</span> を押している間だけ開きます。録音はメモリの中だけで扱い、ファイルに保存しません。</li>
       <li>ログ (<code>~/Library/Logs/JPDictate/dictate.log</code>) には、動作の記録と文字数だけを書き、認識した文章は書きません。</li>
       <li>貼り付けに使う文章は、この Mac のクリップボードだけに置きます。ほかの Apple 製品と共有されるユニバーサルクリップボードには送りません。</li>

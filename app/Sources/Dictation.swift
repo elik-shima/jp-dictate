@@ -1,4 +1,5 @@
 // fn を押している間だけ録音 → 離すと認識 → 貼り付け、の流れを管理する。
+// Shift と一緒に押したときは、認識した文章を Claude で清書してから貼り付ける (Cleanup.swift)。
 // キー・録音・貼り付けはメインスレッド、認識は 1 本の非同期ワーカーで順番に処理する。
 import AppKit
 import Foundation
@@ -18,54 +19,25 @@ final class Dictation {
         let tPress: TimeInterval
         let tRelease: TimeInterval
         let front: pid_t?
+        let cleanup: Bool
     }
 
     let recorder = Recorder()
+    let transcriber = Transcriber()
     let paster = Paster()
     let hotkey = HotkeyMonitor()
     var onState: (String, String) -> Void = { _, _ in }
     var onNotice: (String) -> Void = { _ in }
 
     private var down = false, cancelled = false
-    private var tPress: TimeInterval = 0, nPre = 0, front: pid_t?
+    private var tPress: TimeInterval = 0, nPre = 0, front: pid_t?, cleanupReq = false
     private var pending = 0
     private var tail: DispatchWorkItem?
-    private var tailJob: (nPre: Int, tPress: TimeInterval, tRelease: TimeInterval, front: pid_t?)?
+    private var tailJob: (nPre: Int, tPress: TimeInterval, tRelease: TimeInterval, front: pid_t?, cleanup: Bool)?
     private var jobs: AsyncStream<Job>.Continuation?
     private var watchdogTimer: Timer?
 
     private var now: TimeInterval { ProcessInfo.processInfo.systemUptime }
-
-    // 認識エンジン (メニューで切り替える。認識ワーカーとメインスレッドの両方から触るのでロックで守る)
-    private let apple = Transcriber()
-    private let kotoba = KotobaEngine()
-    private let engineLock = NSLock()
-    private var current: SpeechEngine?
-    private(set) var started = false
-    var engine: SpeechEngine? {
-        engineLock.lock(); defer { engineLock.unlock() }
-        return current
-    }
-    var engineKind: EngineKind { engine?.kind ?? EngineKind.saved }
-    private func setEngine(_ e: SpeechEngine) -> SpeechEngine? {
-        engineLock.lock(); defer { engineLock.unlock() }
-        defer { current = e }
-        return current
-    }
-    private func makeEngine(_ k: EngineKind) -> SpeechEngine { k == .kotoba ? kotoba : apple }
-
-    /// エンジンを切り替える。新しいエンジンの準備 (モデルの読み込み) に失敗したら、前のエンジンのまま error を投げる。
-    /// 切り替えに成功したら前のエンジンのモデルは解放する。
-    func switchEngine(to k: EngineKind) async throws {
-        let new = makeEngine(k)
-        try await new.prepare()
-        if let old = setEngine(new), old !== new { old.unload() }
-        EngineKind.saved = k
-        Log.write("認識エンジン: \(k.rawValue)")
-    }
-
-    /// 現在の状態 (待機中・録音中・認識中) をメニューに反映し直す
-    func refreshState() { idle() }
 
     /// マイクを開き、音声認識を準備し、fn の監視を始める (権限は呼び出し側で確認済みであること)。
     /// メインスレッドで動かす (Timer やメニューの更新はメインスレッドでないと働かない)。
@@ -76,29 +48,19 @@ final class Dictation {
         if !recorder.onDemand {
             do { try recorder.start() } catch { onNotice("⚠️ マイクを開けません: \(error.localizedDescription)") }
         }
-        // 前回選んだエンジンで始める。kotoba を読み込めないとき (モデルがない等) は Apple 内蔵で始めて、選択も戻す。
-        // Apple 内蔵の準備にも失敗したとき (オフラインでの初回起動など) は、次の発話のときにもう一度準備する
-        let saved = EngineKind.saved
         do {
-            try await switchEngine(to: saved)
+            try await transcriber.prepare()
         } catch {
-            Log.write("\(saved.shortLabel) の準備に失敗: \(error.localizedDescription)")
-            if saved != .apple { onNotice("⚠️ \(error.localizedDescription)。Apple 内蔵に戻しました") }
-            do {
-                try await switchEngine(to: .apple)
-            } catch {
-                _ = setEngine(apple)
-                EngineKind.saved = .apple
-                onNotice("⚠️ 音声認識の準備に失敗しました (次の入力で再試行します): \(error.localizedDescription)")
-            }
+            // オフラインでの初回起動など。次の発話のときにもう一度準備する
+            Log.write("音声認識の準備に失敗: \(error.localizedDescription)")
+            onNotice("⚠️ 音声認識の準備に失敗しました (次の入力で再試行します): \(error.localizedDescription)")
         }
-        started = true
         let (stream, cont) = AsyncStream<Job>.makeStream()
         jobs = cont
         Task.detached { [weak self] in
             for await job in stream { await self?.process(job) }
         }
-        hotkey.onDown = { [weak self] in self?.keyDown() }
+        hotkey.onDown = { [weak self] shift in self?.keyDown(cleanup: shift) }
         hotkey.onUp = { [weak self] in self?.keyUp() }
         hotkey.onOther = { [weak self] in self?.otherKey() }
         guard hotkey.start() else { throw NSError(domain: "Dictation", code: 1, userInfo: [NSLocalizedDescriptionKey: "キー入力を監視できません"]) }
@@ -109,21 +71,21 @@ final class Dictation {
     func stop() {
         watchdogTimer?.invalidate()
         paster.flush()
-        kotoba.unloadAndWait()  // 終了前に解放する (しないと終了時に Metal 側で異常終了する)
     }
 
     // MARK: - キー (メインスレッド)
 
-    private func keyDown() {
+    private func keyDown(cleanup: Bool) {
         flushTail()  // 離してすぐ押し直した場合、前の発話を先に確定させる (新しい録音を横取りしない)
         if down { recorder.cancel() }  // 離したイベントを取りこぼしていた: 前の録音は捨てて押し直しとして扱う
         down = true
         cancelled = false
+        cleanupReq = cleanup
         front = SystemState.frontmostPID
         nPre = recorder.begin()
         tPress = now  // マイクを開き終えてから測る (開くのにかかった時間を「押していた時間」に含めない)
         play("Tink")
-        onState("rec", "")
+        onState(cleanup ? "rec-clean" : "rec", "")
     }
 
     private func keyUp() {
@@ -131,7 +93,7 @@ final class Dictation {
         down = false
         if cancelled { idle(); return }
         pending += 1
-        tailJob = (nPre, tPress, now, front)
+        tailJob = (nPre, tPress, now, front, cleanupReq)
         let work = DispatchWorkItem { [weak self] in self?.flushTail() }
         tail = work
         DispatchQueue.main.asyncAfter(deadline: .now() + Dictation.tailSeconds, execute: work)
@@ -153,7 +115,8 @@ final class Dictation {
         tail?.cancel()
         tail = nil
         tailJob = nil
-        jobs?.yield(Job(samples: recorder.end(), nPre: j.nPre, tPress: j.tPress, tRelease: j.tRelease, front: j.front))
+        jobs?.yield(Job(samples: recorder.end(), nPre: j.nPre, tPress: j.tPress, tRelease: j.tRelease, front: j.front,
+                        cleanup: j.cleanup))
     }
 
     private func idle() {
@@ -208,18 +171,37 @@ final class Dictation {
         if AudioGate.voicedSeconds(a, gate: Dictation.rmsGate) < Dictation.minVoicedSeconds {
             Log.write("無音のためスキップ"); return
         }
-        guard let engine else { return }
-        let text: String
+        let recognized: String
         do {
-            if let t = engine as? Transcriber, !t.isPrepared { try await t.prepare() }  // 起動時に準備できなかった場合
-            text = TextCleaner.clean(try await engine.transcribe(a), whisper: engine.kind == .kotoba)
+            if !transcriber.isPrepared { try await transcriber.prepare() }  // 起動時に準備できなかった場合
+            recognized = TextCleaner.clean(try await transcriber.transcribe(a))
         } catch {
             Log.write("認識エラー: \(error.localizedDescription)")
             await notice("⚠️ 認識エラー: \(error.localizedDescription)")
-            if error as? TranscriberError == .timeout { try? await engine.prepare() }
+            if error as? TranscriberError == .timeout { try? await transcriber.prepare() }
             return
         }
-        if text.isEmpty { Log.write("認識結果なし"); return }
+        if recognized.isEmpty { Log.write("認識結果なし"); return }
+        var final = recognized, cleanNote = ""
+        if job.cleanup {
+            if let key = APIKeyStore.load() {
+                await MainActor.run { self.onState("clean", "") }
+                let t0 = now
+                let r = await Cleanup.run(recognized, key: key)
+                let cms = Int((now - t0) * 1000)
+                Log.write("清書: \(r.note) (\(cms)ms)")
+                if r.note == "ok" {
+                    final = r.text
+                    cleanNote = "清書 \(cms)ms"
+                } else {
+                    cleanNote = "清書できず (\(r.note))"
+                }
+            } else {
+                Log.write("清書モード: API キーが未設定")
+                cleanNote = "清書するには API キーを設定してください"
+            }
+        }
+        let text = final, note = cleanNote
         await MainActor.run {
             let ms = Int((self.now - job.tRelease) * 1000)
             let shown = Log.logText ? text : "(\(text.count)文字)"
@@ -234,7 +216,7 @@ final class Dictation {
             } else {
                 self.paster.paste(text)
                 Log.write("[\(dur) 音声 → \(ms)ms] \(shown)")
-                self.onNotice("\(text)  (\(ms)ms)")
+                self.onNotice(note.isEmpty ? "\(text)  (\(ms)ms)" : "\(text)  (\(ms)ms・\(note))")
             }
         }
     }

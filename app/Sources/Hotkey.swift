@@ -2,6 +2,7 @@
 // 押下/解放は FlagsChanged のキーコードと修飾フラグで判定する。右側の修飾キーは左右を区別する
 // デバイス依存フラグ (NX_DEVICER*KEYMASK) で見るので、左側を押したままでも正しく判定できる。
 // それ以外のキー・修飾キーは「他のキー」として通知する (録音中ならキャンセルに使う)。
+// Shift だけは例外: 録音キーと一緒に押すと清書モードになるので、Shift の上げ下げではキャンセルしない。
 import CoreGraphics
 import Foundation
 
@@ -50,7 +51,8 @@ enum TriggerKey: String, CaseIterable {
 }
 
 final class HotkeyMonitor {
-    var onDown: () -> Void = {}
+    /// 引数は、録音キーを押した時点で Shift が押されていたか (清書モード)
+    var onDown: (Bool) -> Void = { _ in }
     var onUp: () -> Void = {}
     var onOther: () -> Void = {}
     var key: TriggerKey = .saved
@@ -85,8 +87,11 @@ final class HotkeyMonitor {
         }
         // 自分が送った ⌘V (⌘ の FlagsChanged も含む) は無視する
         if event.getIntegerValueField(.eventSourceUnixProcessID) == me { return }
-        if type == .flagsChanged && event.getIntegerValueField(.keyboardEventKeycode) == key.keycode {
-            key.isDown(event.flags) ? onDown() : onUp()
+        let code = event.getIntegerValueField(.keyboardEventKeycode)
+        if type == .flagsChanged && code == key.keycode {
+            key.isDown(event.flags) ? onDown(event.flags.contains(.maskShift)) : onUp()
+        } else if type == .flagsChanged && (code == 56 || code == 60) {
+            return  // 左右の Shift (kVK_Shift / kVK_RightShift)
         } else {
             onOther()
         }

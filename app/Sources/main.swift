@@ -1,11 +1,30 @@
 // エントリポイント。
 //   JPDictate                     メニューバーアプリとして起動
-//   JPDictate --transcribe-stdin [--engine apple|kotoba]
-//                                 評価用: 標準入力の WAV パスを 1 行ずつ認識し、JSON を 1 行ずつ返す
+//   JPDictate --transcribe-stdin  評価用: 標準入力の WAV パスを 1 行ずつ認識し、JSON を 1 行ずつ返す
 //                                 ({"text": "...", "ms": 12.3} / {"error": "..."})。貼り付けと同じ後処理を通す。
-//                                 エンジンの既定は apple (kotoba はモデルのダウンロード済みが必要)。
+//   JPDictate --clean-stdin       評価用: 標準入力の文章を 1 行ずつ清書し、JSON を 1 行ずつ返す
+//                                 ({"text": "...", "ms": 812.0, "note": "ok"})。API キーは JPD_API_KEY かキーチェーン。
 import AppKit
 import AVFoundation
+
+if CommandLine.arguments.contains("--clean-stdin") {
+    Log.toStderr = true
+    setvbuf(stdout, nil, _IOLBF, 0)
+    guard let key = ProcessInfo.processInfo.environment["JPD_API_KEY"] ?? APIKeyStore.load() else {
+        print("{\"fatal\": \"API key not set\"}"); exit(1)
+    }
+    Task {
+        while let line = readLine(strippingNewline: true) {
+            let t0 = ProcessInfo.processInfo.systemUptime
+            let r = await Cleanup.run(line, key: key)
+            let ms = ((ProcessInfo.processInfo.systemUptime - t0) * 10000).rounded() / 10
+            let data = try! JSONSerialization.data(withJSONObject: ["text": r.text, "ms": ms, "note": r.note])
+            print(String(decoding: data, as: UTF8.self))
+        }
+        exit(0)
+    }
+    dispatchMain()
+}
 
 if CommandLine.arguments.contains("--transcribe-stdin") {
     Log.toStderr = true
@@ -14,15 +33,7 @@ if CommandLine.arguments.contains("--transcribe-stdin") {
         let data = try! JSONSerialization.data(withJSONObject: d)
         print(String(decoding: data, as: UTF8.self))
     }
-    var parsed = EngineKind.apple
-    if let i = CommandLine.arguments.firstIndex(of: "--engine") {
-        guard i + 1 < CommandLine.arguments.count, let k = EngineKind(rawValue: CommandLine.arguments[i + 1]) else {
-            emit(["fatal": "--engine には apple か kotoba を指定してください"]); exit(2)
-        }
-        parsed = k
-    }
-    let kind = parsed
-    let transcriber: SpeechEngine = kind == .kotoba ? KotobaEngine() : Transcriber()
+    let transcriber = Transcriber()
     Task {
         do {
             try await transcriber.prepare()
@@ -40,13 +51,12 @@ if CommandLine.arguments.contains("--transcribe-stdin") {
                 guard let buf = AVAudioPCMBuffer(pcmFormat: file.processingFormat,
                                                  frameCapacity: AVAudioFrameCount(file.length)) else { throw TranscriberError.convert }
                 try file.read(into: buf)
-                let text = TextCleaner.clean(try await transcriber.transcribe(try AudioConvert.toMono16k(buf)), whisper: kind == .kotoba)
+                let text = TextCleaner.clean(try await transcriber.transcribe(try AudioConvert.toMono16k(buf)))
                 emit(["text": text, "ms": ((ProcessInfo.processInfo.systemUptime - t0) * 10000).rounded() / 10])
             } catch {
                 emit(["error": error.localizedDescription])
             }
         }
-        (transcriber as? KotobaEngine)?.unloadAndWait()  // 終了前に解放する (しないと終了時に Metal 側で異常終了する)
         exit(0)
     }
     dispatchMain()

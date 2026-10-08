@@ -29,7 +29,5 @@ eval/multi/
 app/icon/__pycache__/
 eval/.venv/
 
-# whisper.cpp (app/vendor/build-whisper.sh が取得・ビルド)
-app/vendor/whisper.cpp/
-app/vendor/build/
-app/vendor/.tools/
+# 外部ソース・ビルド物（whisper.cpp 等）。公開しない
+app/vendor/

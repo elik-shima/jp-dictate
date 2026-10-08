@@ -49,8 +49,7 @@ private final class Segments: @unchecked Sendable {
     }
 }
 
-final class Transcriber: SpeechEngine, @unchecked Sendable {
-    let kind = EngineKind.apple
+final class Transcriber: @unchecked Sendable {
     static let sampleRate = 16_000.0
     private let locale = Locale(identifier: "ja_JP")
     private let options = SpeechAnalyzer.Options(priority: .userInitiated, modelRetention: .processLifetime)
@@ -82,17 +81,10 @@ final class Transcriber: SpeechEngine, @unchecked Sendable {
 
     var isPrepared: Bool { format != nil }
 
-    /// Apple 内蔵のモデルは prepare() で読み込んだまま保持する (プロセスが生きている間は解放されない)
-    func unload() {}
-
-    func transcribe(_ samples: [Float]) async throws -> String {
-        try await transcribe(samples, timeout: 30)
-    }
-
     /// 16kHz mono の音声を認識する。timeout 秒で打ち切る。
     /// (タスクグループは止まった子タスクの終了を待ってしまうので、先に終わった方だけを 1 回返す形で競わせる。
     ///  時間切れのときは止まった認識を待たずに返し、次の発話は新しい SpeechAnalyzer で処理する)
-    func transcribe(_ samples: [Float], timeout: Double) async throws -> String {
+    func transcribe(_ samples: [Float], timeout: Double = 30) async throws -> String {
         guard let fmt = format else { throw TranscriberError.notPrepared }
         guard !samples.isEmpty else { return "" }
         // 1 つのバッファが長すぎると先頭が捨てられるので、10 秒ずつに分けて渡す

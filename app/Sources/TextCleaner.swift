@@ -2,13 +2,6 @@
 import Foundation
 
 enum TextCleaner {
-    /// 無音・雑音のときに Whisper 系が出しがちな定番の幻覚フレーズ (kotoba-whisper のときだけ除く)
-    private static let hallucinations: Set<String> = [
-        "ご視聴ありがとうございました", "ご視聴ありがとうございました。",
-        "ありがとうございました", "ありがとうございました。",
-        "チャンネル登録よろしくお願いします", "おやすみなさい", "おやすみなさい。",
-        "字幕は視聴者によって作成されました",
-    ]
     private static let ja = "[\\u3000-\\u30ff\\u3400-\\u9fff\\uff00-\\uffef]"
 
     private static func sub(_ s: String, _ pattern: String, _ template: String) -> String {
@@ -16,10 +9,8 @@ enum TextCleaner {
         return re.stringByReplacingMatches(in: s, range: NSRange(s.startIndex..., in: s), withTemplate: template)
     }
 
-    /// whisper = true (kotoba-whisper) のときは、Whisper 特有の幻覚フレーズも除く
-    static func clean(_ text: String, whisper: Bool = false) -> String {
+    static func clean(_ text: String) -> String {
         var t = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if whisper { t = sub(t, "\\[[^\\]]*\\]|（[^）]*）|♪+", "") }   // Whisper が出す [音楽] (拍手) などのタグ
         t = sub(t, "(?<=\(ja))[ \\t]+|[ \\t]+(?=\(ja))", "")       // 英字・数字と日本語の間の半角スペース
         t = sub(t, "\\s*\\n\\s*", "\n")
         t = sub(t, "(?<=\(ja))\\s+(?=\(ja))", "")                 // 日本語間の余計な空白・改行
@@ -33,7 +24,6 @@ enum TextCleaner {
         t = sub(t, "。{2,}", "。").trimmingCharacters(in: .whitespacesAndNewlines)
         // 「。」だけ、などは貼り付けない
         if t.range(of: "[\\p{L}\\p{N}]", options: .regularExpression) == nil { return "" }
-        if whisper && hallucinations.contains(t) { return "" }
         return t
     }
 }
