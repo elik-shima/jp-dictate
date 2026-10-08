@@ -62,6 +62,7 @@ final class Dictation {
         }
         hotkey.onDown = { [weak self] shift in self?.keyDown(cleanup: shift) }
         hotkey.onUp = { [weak self] in self?.keyUp() }
+        hotkey.onShift = { [weak self] in self?.shiftDown() }
         hotkey.onOther = { [weak self] in self?.otherKey() }
         guard hotkey.start() else { throw NSError(domain: "Dictation", code: 1, userInfo: [NSLocalizedDescriptionKey: "キー入力を監視できません"]) }
         watchdogTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.watchdog() }
@@ -99,6 +100,13 @@ final class Dictation {
         DispatchQueue.main.asyncAfter(deadline: .now() + Dictation.tailSeconds, execute: work)
         play("Pop")
         onState("busy", "")
+    }
+
+    /// 録音キーを押したあとで Shift を足した場合も清書モードにする (押す順番を問わない)
+    private func shiftDown() {
+        guard down, !cancelled, !cleanupReq else { return }
+        cleanupReq = true
+        onState("rec-clean", "")
     }
 
     /// 普段の文字入力でもキーごとに呼ばれるので、録音中にキャンセルしたときだけ何かする

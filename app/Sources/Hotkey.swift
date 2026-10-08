@@ -3,6 +3,7 @@
 // デバイス依存フラグ (NX_DEVICER*KEYMASK) で見るので、左側を押したままでも正しく判定できる。
 // それ以外のキー・修飾キーは「他のキー」として通知する (録音中ならキャンセルに使う)。
 // Shift だけは例外: 録音キーと一緒に押すと清書モードになるので、Shift の上げ下げではキャンセルしない。
+// Shift は録音キーより先でも後でもよい (押し下げを onShift で知らせ、録音中なら清書モードに切り替える)。
 import CoreGraphics
 import Foundation
 
@@ -54,6 +55,8 @@ final class HotkeyMonitor {
     /// 引数は、録音キーを押した時点で Shift が押されていたか (清書モード)
     var onDown: (Bool) -> Void = { _ in }
     var onUp: () -> Void = {}
+    /// Shift が押された (録音中なら清書モードに切り替える)
+    var onShift: () -> Void = {}
     var onOther: () -> Void = {}
     var key: TriggerKey = .saved
     private var tap: CFMachPort?
@@ -91,7 +94,8 @@ final class HotkeyMonitor {
         if type == .flagsChanged && code == key.keycode {
             key.isDown(event.flags) ? onDown(event.flags.contains(.maskShift)) : onUp()
         } else if type == .flagsChanged && (code == 56 || code == 60) {
-            return  // 左右の Shift (kVK_Shift / kVK_RightShift)
+            // 左右の Shift (kVK_Shift / kVK_RightShift)。離したときは何もしない
+            if event.flags.contains(.maskShift) { onShift() }
         } else {
             onOther()
         }
